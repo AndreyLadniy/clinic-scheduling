@@ -1,0 +1,188 @@
+<link rel="import" href="../../bower_components/polymer/polymer-element.html">
+<link rel="import" href="../../bower_components/polymer/lib/elements/dom-repeat.html">
+
+<dom-module id="test-slot">
+    <template>
+        <style>
+            :host {
+                display: block;
+            }
+        </style>
+
+        <div style="border: 1px solid black">
+            Inner content
+            <dom-repeat id="repeater" items="{{items}}" as="{{item}}">
+                <template id="default">
+                    {{item}}
+                </template>
+            </dom-repeat>
+        </div>
+
+        <slot id="sl" name="some-child"></slot>
+
+        <template id="other">
+            <div>{{text}}</div>
+        </template>
+
+    </template>
+
+    <script>
+        class TestSlot extends Polymer.Element {
+
+            static get is() {
+                return 'test-slot'
+            };
+
+            static get properties() {
+                return {
+                    text: {
+                      type: String,
+                      value: 'from property',
+                      notify: true
+                    },
+                    as: {
+                      type: String,
+                      value: 'item'
+                    },
+                    items: {
+                      type: Array,
+                      value: () => ['a, b, c']
+                    }
+                }
+            }
+
+            constructor() {
+              super();
+
+              this._injected = false;
+            }
+//
+            connectedCallback() {
+                super.connectedCallback();
+//
+//                console.log("connectedCallback");
+//                console.log(this.$.sl);
+//                console.log(this.$.sl.assignedNodes());
+//
+//
+//              let template = this.$.sl.assignedNodes()[0];
+//              if (template) {
+//                let template = this.$.other;
+//              }
+//            let TemplateClass = Polymer.Templatize.templatize(template, this, {instanceProps:{text: true}});
+////            let instance = new TemplateClass({text: 'from template'});
+//            let instance = new TemplateClass();
+//            this.$.wrapper.appendChild(instance.root);
+
+//            instance.text = 'set to instance';
+            }
+////
+            ready() {
+                super.ready();
+//
+//              this.addEventListener('tap', e => this._handleTap(e));
+//                this._boundHandler = this._handleSlotChange.bind(this);
+//
+//                this.$.sl.addEventListener('slotchange', this._boundHandler);
+//
+                console.log("ready");
+
+//                let template = this.$.sl.assignedNodes()[0];
+//                  let instance = document.importNode(template._content || template.content, true);
+//                  this.$.wrapper.parentNode.replaceChild(instance, this.$.wrapper);
+
+//                let template = this.$.sl.assignedNodes()[0];
+//                template.__dataHost = this;
+//                let instance = template.content.cloneNode(true);
+//                this.shadowRoot.appendChild(instance);
+
+
+                //                console.log(this.$.sl);
+//                console.log(this.$.sl.assignedNodes());
+////
+////                this.dataHost = this;
+////                // templatize must be called once before stamp is called
+//                this.dataHost = this;
+//
+//                let template = this.$.sl.assignedNodes()[0];
+//
+//                let appended = this.$.wrapper.appendChild(document.createElement('template').appendChild(template.content.cloneNode(true)));
+
+//                const t = this.shadowRoot.querySelector('#tmpOut');
+//                let TemplateClass = Polymer.Templatize.templatize(template, this, {parentModel: true});
+//                let instance = new TemplateClass({text: 'from template'});
+//                this.$.wrapper.parentNode.replaceChild(instance.root, this.$.wrapper);
+//                this.shadowRoot.appendChild(instance.root);
+//
+//
+////                var clone = this.stamp();
+////                this.$.sl.appendChild(clone.root);
+//
+//              if (!this._injected) {
+//                this._injected = true;
+//                let template = Polymer.DomModule.import('calendar-time-allocation', 'template#tmpOut');
+//                let TemplateClass = this.templatize(template, this, {});
+//                let TemplateClass = Polymer.Templatize.templatize(template, this, {});
+//                let instance = new TemplateClass({text: 'from templatize'});
+//                let suggestionTemplate = this.$.sl.assignedNodes()[0];
+//                let suggestionPlaceHolder = template.content.querySelector('#wrapper');
+//
+//                this.$.wrapper.appendChild(instance.root);
+////
+////                console.log(suggestionTemplate.content);
+//                if (suggestionPlaceHolder) {
+//                  suggestionPlaceHolder.parentNode.replaceChild(suggestionTemplate, suggestionPlaceHolder);
+//                }
+//              }
+
+              let template = this.$.sl.assignedNodes()[0];
+              if (template) {
+                let TemplateClass = Polymer.Templatize.templatize(template, this, {instanceProps:{item: true}});
+//            let instance = new TemplateClass({text: 'from template'});
+                let instance = new TemplateClass();
+                this.$.default.parentNode.replaceChild(template, this.$.default);
+                this.$.repeater.__ensureTemplatized();
+
+              }
+
+
+//
+            }
+////
+//            _handleSlotChange(e) {
+//                console.log(e);
+//            }
+
+            _handleTap(e) {
+              console.log(e);
+            }
+
+            _templatize() {
+              if (this.ctor) {
+                return;
+              }
+
+              this._template = this.$.sl.getEffectiveChildren("template");
+
+              if (!this._template) {
+                console.warn('iron-list requires a template to be provided in light-dom');
+              }
+
+              var instanceProps = {};
+              instanceProps.__key__ = true;
+              instanceProps[this.as] = true;
+//              instanceProps[this.indexAs] = true;
+//              instanceProps[this.selectedAs] = true;
+//              instanceProps.tabIndex = true;
+              this._instanceProps = instanceProps;
+              this.ctor = this.Polymer.Templatize.templatize(template, this, {instanceProps: instanceProps, mutableData: this.mutableData});
+
+            }
+        }
+
+        customElements.define(TestSlot.is, TestSlot);
+
+
+    </script>
+
+</dom-module>

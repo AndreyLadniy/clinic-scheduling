@@ -1,0 +1,44 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+
+<link rel="import" href="../calendar-data/calendar-data.html">
+<link rel="import" href="../calendar-view/calendar-view.html">
+
+<dom-module id="calendar-application">
+    <template>
+        <style>
+            :host {
+                display: block;
+            }
+        </style>
+
+        <calendar-data calendars="{{calendars}}">
+
+        </calendar-data>
+
+        <calendar-view calendars="{{calendars}}">
+
+        </calendar-view>
+
+
+    </template>
+
+
+    <script>
+        class CalendarApplication extends Polymer.Element {
+
+            static get is() {
+                return 'calendar-application'
+            };
+
+//            static get properties() {
+//                return {
+//                    calendars: Array
+//                }
+//            }
+
+        }
+
+        customElements.define(CalendarApplication.is, CalendarApplication);
+
+    </script>
+</dom-module>

@@ -1,0 +1,54 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+
+<dom-module id="calendar-data">
+    <template>
+        <style>
+            :host {
+                display: block;
+            }
+        </style>
+    </template>
+
+    <script>
+        class CalendarData extends Polymer.Element {
+
+            static get is() {
+                return 'calendar-data'
+            };
+
+            static get properties() {
+                return {
+                    calendars: {
+                        notify: true
+                    }
+                }
+            }
+
+            ready() {
+                super.ready();
+
+                let calendarsRequest = new Request(
+                    "http://api.rudux.ru/ecommerce/scheduling/calendars",
+                    {
+                        method: 'GET',
+                        mode: 'cors',
+                    }
+                );
+
+                let self = this;
+                fetch(calendarsRequest)
+                    .then(response => response.json())
+                    .then(calendars => self.set('calendars', calendars));
+
+                    //MOCK
+//                  this.calendars = [];
+            }
+
+
+
+        }
+
+        customElements.define(CalendarData.is, CalendarData);
+
+    </script>
+</dom-module>

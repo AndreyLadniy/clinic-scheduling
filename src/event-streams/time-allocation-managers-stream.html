@@ -1,0 +1,22 @@
+<!--<link rel="import" href="../polymer-rxjs/polymer-rxjs.html">--><html><head><script>
+
+    var Streams = {
+        timeAllocationManagersStream: new Rx.Subject(),
+        timeAllocationManagersAttendeesStream: new Rx.Subject()
+    };
+
+    TimeAllocationManagersStreamMixin = Parent => class TimeAllocationManagersStreamMixin extends Parent {
+
+        constructor() {
+            super();
+
+            this.timeAllocationManagersStream = new Rx.Subject();
+
+            this.timeAllocationManagersAttendeesStream = new Rx.Subject();
+
+        }
+
+    };
+
+</script>
+</head><body></body></html>

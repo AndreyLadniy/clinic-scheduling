@@ -1,0 +1,187 @@
+<html><head><link rel="import" href="../../bower_components/polymer-redux/polymer-redux.html">
+
+<script>
+    const initialState = {
+        timeAllocationManagers: []
+    };
+
+    /**
+     @param {<T>} el current value
+     @param {function(T=): Boolean} f Function T => Boolean
+     @param {function(T=): T} d Default returned value if f(el)
+     @return {<T>} Function T => T
+     */
+    const replace = (f, d) => {
+        return el =>
+        {
+            if (f(el)) {
+                return d(el);
+            } else {
+                return el;
+            }
+        }
+    };
+
+    const movingStartedProcess = (state, action) => {
+//        let replacetimeAllocationManager = ;
+
+        let timeAllocationManagers = state.timeAllocationManagers.map(
+            replace(el => el.timeAllocationManagerId === action.timeAllocationManagerId, el => Object.assign({}, el, {moving: true}))
+        );
+
+        return Object.assign({}, state, {timeAllocationManagers: timeAllocationManagers});
+    };
+
+    const movingCompletedProcess = (state, action) => {
+        let timeAllocationManagers = state.timeAllocationManagers.map(
+            replace(el => el.timeAllocationManagerId === action.timeAllocationManagerId, el => Object.assign({}, el, {start: action.start, end: action.end, moving: undefined}))
+        );
+
+        return Object.assign({}, state, {timeAllocationManagers: timeAllocationManagers});
+    };
+
+    const timeAllocationManagerAddedProcess = (state, action) => {
+        let timeAllocationManagers = state.timeAllocationManagers.concat(action.timeAllocationManager);
+
+        return Object.assign({}, state, {timeAllocationManagers: timeAllocationManagers});
+    };
+
+    const timeAllocationManagerUpdateProcess = (state, action) => {
+        let timeAllocationManagers = state.timeAllocationManagers.map(
+            replace(el => el.timeAllocationManagerId === action.timeAllocationManager.timeAllocationManagerId, el =>  Object.assign({}, action.timeAllocationManager, el.attendees))
+        );
+
+        return Object.assign({}, state, {timeAllocationManagers: timeAllocationManagers});
+    };
+
+    const reducer = (state = initialState, action) => {
+        switch (action.type) {
+            case 'TIME_ALLOCATION_MANAGERS_SHANPSHOT_RECEIVED':
+                return Object.assign({}, state, {timeAllocationManagers: action.timeAllocationManagers});
+            case 'MOVING_STARTED':
+                return movingStartedProcess(state, action);
+            case 'MOVING_COMPLETED':
+                return movingCompletedProcess(state, action);
+            case 'TIME_ALLOCATION_MANAGER_ADDED':
+                return timeAllocationManagerAddedProcess(state, action);
+            case 'TIME_ALLOCATION_MANAGER_UPDATED':
+                return timeAllocationManagerUpdateProcess(state, action);
+            default:
+                return state;
+        }
+    };
+
+    const store = Redux.createStore(
+        reducer,
+        Redux.applyMiddleware(ReduxThunk.default)
+    );
+
+    ReduxMixin = PolymerRedux(store);
+
+    AsyncActionsBehaviorMixin = Parent => class AsyncActionsBehavior extends ReduxMixin(Parent) {
+        static get actions() {
+            return {
+                getTimeAllocationManagers: (organizerId) => {
+                    return dispatch => {
+                        let timeAllocationManagersRequest = new Request(
+                            "http://api.rudux.ru/ecommerce/scheduling/" + organizerId + "/allocations/all",
+                            {
+                                method: 'GET',
+                                mode: 'cors',
+                            }
+                        );
+
+                        let timeAllocationManagersAttendeesRequest = new Request(
+                            "http://api.rudux.ru/ecommerce/scheduling/" + organizerId + "/allocations/attendees",
+                            {
+                                method: 'GET',
+                                mode: 'cors',
+                            }
+                        );
+
+                        let l1 = fetch(timeAllocationManagersRequest).then(response => response.json());
+
+                        let l2 = fetch(timeAllocationManagersAttendeesRequest).then(response => response.json());
+
+                        Promise.all([l1, l2])
+                            .then(l  => {
+                                let timeAllocationManagers = l[0];
+
+                                let attendees = l[1];
+
+                                attendees.forEach(
+                                    attendee => {
+                                        let timeAllocationManager = timeAllocationManagers.find(function (el) {
+                                            return el.timeAllocationManagerId === attendee.timeAllocationManagerId;
+                                        });
+
+
+                                        if (!timeAllocationManager.attendees) {
+                                            timeAllocationManager.attendees = [attendee];
+                                        } else {
+                                            timeAllocationManager.attendees.push(attendee);
+                                        }
+                                    }
+                                );
+
+                                dispatch({
+                                    type: 'TIME_ALLOCATION_MANAGERS_SHANPSHOT_RECEIVED',
+                                    timeAllocationManagers: timeAllocationManagers
+                                });
+                            });
+                    }
+
+                },
+                addTimeAllocationManager: (timeAllocationManager) => {
+                    return dispatch => {
+                        dispatch({type: 'TIME_ALLOCATION_MANAGER_ADDED', timeAllocationManager: timeAllocationManager})
+                    }
+                },
+                moveTimeIntervalAllocation: (timeAllocationManagerId, start, end) => {
+                    return dispatch => {
+                        dispatch({type: 'MOVING_STARTED', timeAllocationManagerId: timeAllocationManagerId});
+
+                        let request = new Request(
+                            "http://api.rudux.ru/ecommerce/scheduling/allocation",
+                            {
+                                method: 'POST',
+                                headers: new Headers(
+                                    {
+                                        "Content-Type": "application/json",
+                                        "Command-Type": "ecommerce.scheduling.MoveTimeAllocationManagerInterval",
+//                                        "Access-Control-Allow-Origin": "*"
+                                    }
+                                ),
+                                mode: 'cors',
+                                body: JSON.stringify({
+                                    "timeAllocationManagerId": timeAllocationManagerId,
+                                    "start": start,
+                                    "end": end
+                                })
+
+                            }
+                        );
+
+                        fetch(request);
+//                        .then(
+//                            response => {
+//                                if (response.ok) {
+//                                    dispatch({type: 'MOVING_COMPLETED', timeAllocationManagerId: timeAllocationManagerId, start: start, end: end});
+//                                } else {
+//                                    throw new Error('Network response was not ok.');
+//                                }
+//                            }
+//                        )
+                    }
+                },
+                updateTimeAllocationManager: timeAllocationManager => {
+                    return dispatch => {
+                        dispatch({type: 'TIME_ALLOCATION_MANAGER_UPDATED', timeAllocationManager: timeAllocationManager});
+                    }
+                }
+
+            }
+        }
+    }
+
+</script></head><body></body></html>

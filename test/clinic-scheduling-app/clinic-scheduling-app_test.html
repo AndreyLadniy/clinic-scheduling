@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, minimum-scale=1, initial-scale=1, user-scalable=yes">
+
+    <title>clinic-scheduling-app test</title>
+
+    <script src="../../../webcomponentsjs/webcomponents-lite.js"></script>
+    <script src="../../../web-component-tester/browser.js"></script>
+
+    <link rel="import" href="../../src/clinic-scheduling-app/clinic-scheduling-app.html">
+  </head>
+  <body>
+    <test-fixture id="basic">
+      <template>
+        <clinic-scheduling-app></clinic-scheduling-app>
+      </template>
+    </test-fixture>
+
+    <script>
+      suite('clinic-scheduling-app', function() {
+        test('instantiating the element works', function() {
+          var element = fixture('basic');
+          assert.equal(element.is, 'clinic-scheduling-app');
+        });
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,523 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/polymer/lib/elements/dom-repeat.html">
+<link rel="import" href="../../bower_components/paper-input/paper-input.html">
+<link rel="import" href="../../bower_components/iron-input/iron-input.html">
+<link rel="import" href="../../bower_components/paper-input/paper-input-container.html">
+<link rel="import" href="../../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../../bower_components/paper-dialog/paper-dialog.html">
+<link rel="import" href="../../bower_components/paper-time-picker/paper-time-picker.html">
+<link rel="import" href="../../bower_components/paper-input-autocomplete-chips/paper-input-autocomplete-chips.html">
+<link rel="import" href="../../bower_components/paper-autocomplete/paper-autocomplete.html">
+<link rel="import" href="../../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
+
+<link rel="import" href="../redux-store/redux-store.html">
+
+<link rel="import" href="../event-streams/time-allocation-managers-stream.html">
+
+<link rel="import" href="../test-slot/test-slot.html">
+
+<link rel="import" href="calendar-time-allocation-creating.html">
+
+<!--<link rel="import" href="../../bower_components/moment/min/moment.min.js">-->
+
+</head><body><dom-module id="calendar-time-allocation">
+    <template>
+        <custom-style>
+            <!--<style>-->
+                <!--iron-icon {-->
+                    <!--&#45;&#45;iron-icon-height: 50px;-->
+                    <!--&#45;&#45;iron-icon-width: 50px;-->
+                <!--}-->
+            <!--</style>-->
+            <style include="iron-flex iron-flex-alignment"></style>
+        </custom-style>
+
+        <style>
+            :host {
+                display: block;
+                /*border: 1px solid black;*/
+            }
+
+            div[acceptable] {
+                background-color: yellow;
+            }
+
+            paper-button.move {
+                background: green;
+            }
+
+            paper-button.move.busy {
+                background: yellowgreen;
+            }
+
+            paper-button.move.error {
+                background: red;
+            }
+
+            div.grid-wrapper {
+                display: flex;
+            }
+
+            paper-input {
+                margin-left: 10px;
+                margin-right: 10px;
+            }
+
+            iron-icon {
+                --iron-icon: {
+                    height: 50px;
+                    width: 50px;
+                }
+                /*--iron-icon-height: 50px;*/
+                /*--iron-icon-width: 50px;*/
+            }
+
+            iron-icon.accepted {
+                background-color: green;
+            }
+
+            iron-icon.declined {
+                background-color: red;
+            }
+
+            /*iron-icon.needsAction {*/
+                /*background-color: yellow;*/
+            /*}*/
+
+        </style>
+
+        <div acceptable$="[[preparedForAccepting]]">
+            <!--<div>Organizer [[organizerId]]</div>-->
+            <h3>TimeAllocationManager [[timeAllocationManagerId]]</h3>
+            <div class="grid-wrapper">
+                <paper-input label="Start" value="{{start}}"></paper-input>
+                <paper-input label="End" value="{{end}}"></paper-input>
+                <paper-button class$="move [[moveTimeAllocationManagerStatus]]" raised="" on-tap="_moveTimeAllocationManager">move</paper-button>
+            </div>
+            <!--<div>-->
+                <!--<paper-input id="chipInput" placeholder="email"-->
+                             <!--value="{{attendeeIdForAllocation}}"-->
+                             <!--on-keypress="_checkConfirmation"-->
+                             <!--on-blur="_allocateAttendeeTime">-->
+                    <!--<div slot="prefix">-->
+                        <!--<template is="dom-repeat" items="[[attendees]]">-->
+                            <!--<paper-chip removable="" persist-remove-button="" on-remove="_deallocateAttendeeTime">-->
+                                <!--<iron-icon slot="icon" class$="{{item.responseStatus}}" icon="{{_responseStatusIcon(item)}}"></iron-icon>-->
+                                <!--<div slot="label">[[item.attendeeId]]</div>-->
+                            <!--</paper-chip>-->
+                        <!--</template>-->
+                    <!--</div>-->
+                <!--</paper-input>-->
+            <!--</div>-->
+            <!--<paper-dialog id="endTimeDialog" modal="" class="paper-time-picker-dialog" on-iron-overlay-closed="dismissChangeEndDialog">-->
+                <!--<paper-time-picker id="endTimePicker" time="[[time]]"></paper-time-picker>-->
+                <!--<div class="buttons">-->
+                    <!--<paper-button dialog-dismiss="">Cancel</paper-button>-->
+                    <!--<paper-button dialog-confirm="">OK</paper-button>-->
+                <!--</div>-->
+            <!--</paper-dialog>-->
+            <div class="layout horizontal center">
+                <div >
+                    <template is="dom-repeat" items="[[attendees]]" as="item">
+                        <paper-chip removable="" persist-remove-button="" on-remove="_deallocateAttendeeTime">
+                            <iron-icon slot="icon" class$="{{item.responseStatus}}" icon="{{_responseStatusIcon(item)}}"></iron-icon>
+                            <div slot="label">[[item.attendeeId]]</div>
+                        </paper-chip>
+                    </template>
+                </div>
+                <div class="flex">
+                    <paper-autocomplete source="{{_autocompleteSource(calendars)}}"
+                                        id="chipInput" placeholder="attendee"
+                                        on-autocomplete-selected="_allocateAttendeeTime">
+                    </paper-autocomplete>
+                </div>
+            </div>
+        </div>
+
+        <!--<test-slot  values="{{values}}">-->
+            <!--<template id="tmpOut" slot="some-child">-->
+                <!--<p>template: {{item}}</p>-->
+            <!--</template>-->
+            <!--&lt;!&ndash;<div id="tmpOut" slot="some-child">&ndash;&gt;-->
+            <!--&lt;!&ndash;<template is="dom-repeat" items="{{values}}">&ndash;&gt;-->
+            <!--&lt;!&ndash;<p>{{item}}</p>&ndash;&gt;-->
+            <!--&lt;!&ndash;</template>&ndash;&gt;-->
+            <!--&lt;!&ndash;</div>&ndash;&gt;-->
+        <!--</test-slot>-->
+
+    </template>
+
+    <template id="tmpOut" slot="some-child">
+        <p>{{text}}</p>
+    </template>
+
+    <script>
+
+        class CalendarTimeAllocation extends TimeAllocationManagersStreamMixin(AsyncActionsBehaviorMixin(Polymer.Element)) {
+            static get is() {
+                return 'calendar-time-allocation';
+            }
+
+            static get properties() {
+                return {
+                    _suggestions: {
+                        type: Array,
+                        value: () => [{text: "a", value: {}}]
+                    },
+                    timeAllocationManagerId: {
+                        type: String
+                    },
+                    organizerId: {
+                        type: String,
+                    },
+                    start: {
+                        type: String
+                    },
+                    end: {
+                        type: String
+                    },
+                    preparedForAccepting: {
+                        type: Boolean
+                    },
+                    attendees: {
+                        type: Array,
+                        value: function () {
+                            return [];
+                        }
+                    },
+                    attendeeIdForAllocation: {
+                        type: String,
+                        value: ''
+                    },
+                  calendars: {
+                    type: Array,
+                    value: () => [
+                      {"text": "Alabama", "value": "AL"},
+                      {"text": "Alaska", "value": "AK"},
+                      {"text": "American Samoa", "value": "AS"},
+                      {"text": "Arizona", "value": "AZ"},
+                      {"text": "Arkansas", "value": "AR"},
+                      {"text": "California", "value": "CA"},
+                      {"text": "Colorado", "value": "CO"},
+                      {"text": "Connecticut", "value": "CT"},
+                      {"text": "Delaware", "value": "DE"},
+                      {"text": "District Of Columbia", "value": "DC"},
+                      {"text": "Federated States Of Micronesia", "value": "FM"},
+                      {"text": "Florida", "value": "FL"},
+                      {"text": "Georgia", "value": "GA"},
+                      {"text": "Guam", "value": "GU"},
+                      {"text": "Hawaii", "value": "HI"},
+                      {"text": "Idaho", "value": "ID"},
+                      {"text": "Illinois", "value": "IL"},
+                      {"text": "Indiana", "value": "IN"},
+                      {"text": "Iowa", "value": "IA"},
+                      {"text": "Kansas", "value": "KS"},
+                      {"text": "Kentucky", "value": "KY"},
+                      {"text": "Louisiana", "value": "LA"}
+                      ]
+                  }
+
+
+                };
+            }
+
+              _autocompleteSource(calendars) {
+                return calendars.map(
+                  el => {
+                      return {
+                        text: (el.summary + "(" + el.description + ")"),
+                        value: el
+                      };
+                    });
+              }
+
+            constructor() {
+                super();
+
+                this.moveTimeAllocationManagerStatus = "";
+                this.timeAllocationManagersAttendeesStreamSubscription = null;
+            }
+
+            ready() {
+                super.ready();
+
+
+//                this.$.endTimeDialog.close();
+            }
+
+            connectedCallback() {
+                super.connectedCallback();
+
+                var self = this;
+                this.timeAllocationManagersAttendeesStreamSubscription = Streams.timeAllocationManagersStream
+                    .filter(el => {
+                        return el.payload.timeAllocationManagerId === self.timeAllocationManagerId
+                    })
+                    .subscribe(v => {
+
+                        if (v.event) {
+                            switch (v.event) {
+                                case 'TimeAllocationManagerIntervalMoved':
+                                    self.set('start', v.payload.start);
+                                    self.set('end', v.payload.end);
+
+                                    break;
+                                case 'AttendeeTimeAllocationRequested':
+                                    ((payload) => {
+                                        if (self.attendees) {
+                                            let index = self.attendees.findIndex(el => el.attendeeId === payload.attendeeId);
+
+                                            self.push('attendees', Object.assign({}, payload, {responseStatus: 'needsAction'}));
+
+                                        } else {
+                                            self.attendees = [Object.assign({}, payload, {responseStatus: 'needsAction'})];
+                                        }
+
+                                        self.set('preparedForAccepting', false);
+                                    })(v.payload);
+
+                                    break;
+                                case 'AttendeeTimeAllocationAccepted':
+                                    ((payload) => {
+                                        let index = self.attendees.findIndex(el => el.attendeeId === payload.attendeeId);
+
+                                        self.set('attendees.' + index, Object.assign({}, self.attendees[index], {responseStatus: 'accepted'}));
+                                    })(v.payload);
+
+                                    break;
+                                case 'AllAttendeesTimeAllocationsAccepted':
+//                                    ((payload) => {
+//                                        let index = self.attendees.findIndex(el => el.attendeeId === payload.attendeeId);
+//
+//                                        self.set('attendees.' + index, Object.assign({}, self.attendees[index], {responseStatus: 'accepted'}));
+//                                    })(v.payload);
+
+                                    self.set('preparedForAccepting', true);
+
+                                    console.log('[' + CalendarTimeAllocation.is + '] Event:' + v.event);
+
+                                    break;
+                                case 'AttendeeTimeAllocationDeclined':
+                                    ((payload) => {
+                                        let index = self.attendees.findIndex(el => el.attendeeId === payload.attendeeId);
+
+                                        self.set('attendees.' + index, Object.assign({}, self.attendees[index], {responseStatus: 'declined'}));
+                                    })(v.payload);
+
+                                    break;
+                                case 'AttendeeTimeDeallocated':
+                                    ((payload) => {
+                                        let index = self.attendees.findIndex(el => el.attendeeId === payload.attendeeId);
+
+                                        self.splice('attendees', index, 1);
+                                    })(v.payload);
+
+                                    break;
+
+                                default:
+                                    console.log('[' + CalendarTimeAllocation.is + '] Event not found:' + v.event);
+                            }
+                        }
+//                        else {
+//                            let index = self.attendees.findIndex(el => el.attendeeId === v.attendeeId);
+//
+//                            if (index === -1) {
+//                                self.push('attendees', v)
+//                            } else {
+//                                self.set('attendees.' + index, Object.assign({}, self.attendees[index], v))
+//                            }
+//                        }
+                    });
+            }
+
+            disconnectedCallbavack() {
+                super.disconnectedCallback();
+
+                this.timeAllocationManagersAttendeesStreamSubscription.unsubscribe();
+            }
+
+            _moveTimeAllocationManager(e) {
+                this.moveTimeIntervalAllocation(this.start, this.end)
+            }
+
+            moveTimeIntervalAllocation(start, end) {
+
+                let request = new Request(
+                "http://api.rudux.ru/ecommerce/scheduling/allocation",
+                    {
+                        method: 'POST',
+                        headers: new Headers(
+                            {
+                                "Content-Type": "application/json",
+                                "Command-Type": "ecommerce.scheduling.MoveTimeAllocationManagerInterval",
+//                                "Access-Control-Allow-Origin": "*"
+                            }
+                        ),
+                        mode: 'cors',
+                        body: JSON.stringify({
+                            "timeAllocationManagerId": this.timeAllocationManagerId,
+                            "start": start,
+                            "end": end
+                        })
+
+                    }
+                );
+
+                fetch(request);
+            }
+
+            openChangeEndDialog() {
+                this.$.endTimePicker.time = moment(this.end).format("HH:mm");
+                this.$.endTimeDialog.toggle();
+            }
+
+            dismissChangeEndDialog(event) {
+                if (event.detail.confirmed) {
+//                    scope.time = scope.$.endTimePicker.time;
+                    console.log(this.$.endTimePicker.time);
+
+                    this.end = moment(this.end).startOf('day')
+                        .add(this.$.endTimePicker.hour, 'hours')
+                        .add(this.$.endTimePicker.minute, 'minutes')
+                        .add(this.$.endTimePicker.second, 'seconds')
+                        .format();
+
+                    // reset the picker to hours
+                    this.$.endTimePicker.view = 'hours';
+                }
+            }
+
+            _updateTimeAllocationManagerFromState(state) {
+                this.set('timeAllocationManagerId', state.timeAllocationManagerId);
+                this.set('organizerId', state.organizerId);
+                this.set('start', state.start);
+                this.set('end', state.end);
+                this.set('preparedForAccepting', state.preparedForAccepting);
+                this.set('attendees', state.attendees ? state.attendees : []);
+//                this.set('moving', state.moving ? state.moving : false);
+            }
+
+            _moving(state) {
+                return state.moving ? state.moving : false
+            }
+
+            /*
+            * (state, command) => event
+            * */
+            _handleCommands(state, command) {
+
+            }
+
+            /*
+            * (state, event) => state
+            * */
+            _handleEvents(state, event) {
+
+            }
+
+            _behavior(command) {
+                Promise.resolve({})
+                    .then(state => this._handleCommands(state, command))
+                    .then(event => this._handleEvents(state, event));
+            }
+
+            _stateToString(state) {
+                return JSON.stringify(state);
+            }
+
+            _responseStatusIcon(item) {
+                switch (item.responseStatus) {
+                    case 'needsAction':
+                        return 'icons:help';
+                    case 'accepted':
+                        return 'icons:check';
+                    case 'declined':
+                        return 'icons:block';
+                    default:
+                        return '';
+                }
+            }
+
+            deallocateAttendeeTime(attendeeId) {
+
+                let request = new Request(
+                    "http://api.rudux.ru/ecommerce/scheduling/allocation",
+                    {
+                        method: 'POST',
+                        headers: new Headers(
+                            {
+                                "Content-Type": "application/json",
+                                "Command-Type": "ecommerce.scheduling.DeallocateAttendeeTime",
+//                                "Access-Control-Allow-Origin": "*"
+                            }
+                        ),
+                        mode: 'cors',
+                        body: JSON.stringify({
+                            "timeAllocationManagerId": this.timeAllocationManagerId,
+                            "attendeeId": attendeeId
+                        })
+
+                    }
+                );
+
+                fetch(request);
+            }
+
+            _deallocateAttendeeTime(e) {
+                e.preventDefault();
+
+                this.deallocateAttendeeTime(e.model.item.attendeeId);
+            }
+
+            allocateAttendeeTime(attendeeId) {
+
+                let request = new Request(
+                    "http://api.rudux.ru/ecommerce/scheduling/allocation",
+                    {
+                        method: 'POST',
+                        headers: new Headers(
+                            {
+                                "Content-Type": "application/json",
+                                "Command-Type": "ecommerce.scheduling.AllocateAttendeeTime",
+//                                "Access-Control-Allow-Origin": "*"
+                            }
+                        ),
+                        mode: 'cors',
+                        body: JSON.stringify({
+                            "timeAllocationManagerId": this.timeAllocationManagerId,
+                            "attendeeId": attendeeId
+                        })
+
+                    }
+                );
+
+                let self = this;
+                fetch(request).then(() => self.attendeeIdForAllocation='');
+
+            }
+
+            _allocateAttendeeTime(e) {
+//              if (this.attendeeIdForAllocation) {
+//                this.allocateAttendeeTime(this.attendeeIdForAllocation);
+//              }
+              this.allocateAttendeeTime(e.detail.value.calendarId);
+              this.$.chipInput.clear();
+            }
+
+            // If enter was pressed, unfocus the text input
+            _checkConfirmation(e) {
+                if (e.keyCode === 13) {
+                    e.preventDefault();
+                    e.target.blur();
+                }
+            }
+
+
+        }
+
+
+
+        customElements.define(CalendarTimeAllocation.is, CalendarTimeAllocation)
+    </script>
+</dom-module>
+</body></html>

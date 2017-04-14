@@ -1,0 +1,191 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/iron-flex-layout/iron-flex-layout.html">
+<link rel="import" href="../../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
+<link rel="import" href="../../bower_components/paper-styles/element-styles/paper-material.html">
+<link rel="import" href="../../bower_components/paper-icon-button/paper-icon-button.html">
+
+<dom-module id="calendar-item">
+    <template>
+        <!--<style is="custom-style" include="iron-flex iron-flex-alignment"></style>-->
+
+        <custom-style>
+            <style include="paper-material"></style>
+            <style include="iron-flex iron-flex-alignment iron-flex-factors"></style>
+        </custom-style>
+
+        <style>
+            :host {
+                display: block;
+                box-sizing: border-box;
+                min-height: 50px;
+            }
+
+            .row {
+                position: relative;
+                padding: 16px 16px 16px 22px;
+
+                @apply --layout-horizontal;
+                @apply --layout-center;
+            }
+
+            /*.row div {*/
+                /*@apply --layout-flex;*/
+            /*}*/
+
+            :host:hover .btn-cancel,
+            :host([active]) .btn-cancel {
+                opacity: 1;
+            }
+
+            :host([deleted]) #calendarIdLabel {
+                text-decoration:line-through;
+            }
+
+            paper-input {
+                margin-top: -4px;
+                --paper-input-container-input: {
+                    font-family: 'Roboto Slab';
+                    font-size: 20px;
+                    text-overflow: ellipsis;
+                };
+                --paper-input-container-underline: {
+                    background: transparent;
+                };
+            }
+
+            .btn-cancel {
+                opacity: 0;
+                /* Same as paper-material shadow */
+                /*https://github.com/PolymerElements/paper-styles/blob/master/shadow.html#L17*/
+                transition: opacity 0.28s;
+                /* Odd hack to fix cropped paper-ripple focus state */
+                /* https://github.com/PolymerElements/paper-icon-button/issues/33 */
+                font-size: 15px;
+
+        </style>
+
+        <div class="row">
+            <div id="calendarIdLabel" class="flex">{{_computeLabelId(calendar.calendarId)}}</div>
+            <paper-input label="summary"
+                         class="flex"
+                         value="{{calendar.summary}}"
+                         no-label-float
+                         on-keypress="_checkConfirmation"
+                         on-blur="_updateSummary">
+            </paper-input>
+
+            <paper-input label="description"
+                         class="flex"
+                         value="{{calendar.description}}"
+                         no-label-float
+                         on-keypress="_checkConfirmation"
+                         on-blur="_updateDescription">
+            </paper-input>
+
+            <paper-icon-button icon="icons:delete"
+                               class="btn-cancel"
+                               aria-label="Delete Todo"
+                               tabindex="0"
+
+                               on-tap="_onDelete">
+            </paper-icon-button>
+        </div>
+
+    </template>
+
+    <script>
+        class CalendarItem extends Polymer.Element {
+
+            static get is() {
+                return 'calendar-item'
+            };
+
+            static get properties() {
+                return {
+                    calendar: Object,
+                    active: {
+                        type: Boolean,
+                        value: false,
+                        reflectToAttribute: true
+                    },
+                    elevation: {
+                        type: Number,
+                        computed: '_computeElevation(active)',
+                        reflectToAttribute: true
+                    },
+                    deleted: {
+                        type: Boolean,
+                        computed: '_computeDelete(calendar.deleted)',
+                        reflectToAttribute: true
+                    },
+                }
+            }
+
+//            static get observers() {
+//                return [
+//                    '_summaryUpdated(calendar.summary)',
+//                    '_descriptionUpdated(calendar.description)'
+//                ]
+//            }
+
+            connectedCallback() {
+                this.addEventListener('focus', this._activate.bind(this), true);
+                this.addEventListener('blur', this._deactivate.bind(this), true);
+                this.addEventListener('mouseenter', this._activate.bind(this));
+                this.addEventListener('mouseleave', this._deactivate.bind(this));
+            }
+
+            disconnectedCallback() {
+                this.removeEventListener('focus', this._activate.bind(this), true);
+                this.removeEventListener('blur', this._deactivate.bind(this), true);
+                this.removeEventListener('mouseenter', this._activate.bind(this));
+                this.removeEventListener('mouseleave', this._deactivate.bind(this));
+            }
+
+
+            _activate() {
+                this.active = true;
+            }
+
+            _deactivate() {
+                this.active = false;
+            }
+
+            _computeElevation(active) {
+                return active ? 2 : 0;
+            }
+
+
+            // If enter was pressed, unfocus the text input
+            _checkConfirmation(e) {
+                if (e.keyCode === 13) {
+                    e.preventDefault();
+                    e.target.blur();
+                }
+            }
+
+            _computeLabelId(calendarId) {
+                return calendarId;
+            }
+
+            _onDelete() {
+                this.dispatchEvent(new CustomEvent('delete-calendar', {detail: {calendar: this.calendar}, bubbles: true, composed: true}));
+            }
+
+            _updateSummary() {
+                this.dispatchEvent(new CustomEvent('update-calendar-summary', {detail: {calendar: this.calendar}, bubbles: true, composed: true}));
+            }
+
+            _updateDescription() {
+                this.dispatchEvent(new CustomEvent('update-calendar-description', {detail: {calendar: this.calendar}, bubbles: true, composed: true}));
+            }
+
+            _computeDelete(e) {
+                return e;
+            }
+        }
+
+        customElements.define(CalendarItem.is, CalendarItem);
+
+    </script>
+</dom-module>

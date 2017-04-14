@@ -1,0 +1,126 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
+<link rel="import" href="../../bower_components/paper-input/paper-input.html">
+<link rel="import" href="../../bower_components/paper-button/paper-button.html">
+
+
+<dom-module id="calendar-input">
+    <template>
+
+        <custom-style>
+            <style include="iron-flex iron-flex-alignment iron-flex-factors"></style>
+        </custom-style>
+
+        <style>
+            :host {
+                display: block;
+            }
+
+            .input-wrapper {
+                padding-left: 70px;
+            }
+            paper-input {
+                display: inline-block;
+                width: 65%;
+                --paper-input-container: {
+                    padding-bottom: 0;
+                };
+                /* These styles are not DRY :( */
+                --paper-input-container-label: {
+                    font-size: 20px;
+                    font-family: 'Roboto Slab', 'Roboto', 'Helvetica', 'Arial', sans-serif;
+                    font-weight: normal;
+                    color: #9E9E9E;
+                };
+                --paper-input-container-input: {
+                    font-size: 20px;
+                    font-family: 'Roboto Slab', 'Roboto', 'Helvetica', 'Arial', sans-serif;
+                };
+                --paper-input-container-underline: {
+                    top: 7px;
+                    background: #9E9E9E;
+                };
+                --paper-input-container-underline-focus: {
+                    top: 7px;
+                };
+            }
+            paper-input[focused] + paper-button,
+            paper-button[focused] {
+                background: var(--default-primary-color);
+                color: var(--text-primary-color);
+            }
+            paper-button {
+                background: #E0E0E0;
+                color: #9E9E9E;
+                font-size: 14px;
+            }
+            paper-button[focused] {
+                /* https://github.com/PolymerElements/paper-button/pull/43 */
+                outline-width: 3px;
+            }
+        </style>
+
+        <div class="input-wrapper layout horizontal center">
+            <paper-input id="calendarIdInput"
+                         class="flex"
+                         no-label-float
+                         label="email"
+                         on-keydown="_checkCreateCalendar"
+                         value="{{calendarId}}">
+            </paper-input>
+
+            <paper-input id="calendarSummaryInput"
+                         class="flex"
+                         no-label-float
+                         label="summary"
+                         on-keydown="_checkCreateCalendar"
+                         value="{{summary}}">
+            </paper-input>
+
+            <paper-button on-tap="_createCalendar">Create</paper-button>
+
+        </div>
+
+    </template>
+
+    <script>
+        class CalendarInput extends Polymer.Element {
+
+            static get is() {
+                return 'calendar-input'
+            };
+
+            static get properties() {
+                return {
+                    calendarId: String,
+                    summary: String
+                }
+            }
+
+
+            // Listen for ENTER key
+            _checkCreateCalendar(e) {
+                if (e.keyCode === 13) {
+                    this._add();
+                }
+            }
+
+            _createCalendar() {
+                if (this.calendarId && this.summary) {
+                    this.dispatchEvent(new CustomEvent('add-calendar', {detail: {calendar: {calendarId: this.calendarId, summary: this.summary}}}));
+                    this.$.calendarIdInput.value = null;
+                    this.$.calendarSummaryInput.value = null;
+                }
+            }
+
+//            _computeDisabledCreateButton(calendarId, summary) {
+//                return !(!!calendarId && !!summary);
+//            }
+
+
+        }
+
+        customElements.define(CalendarInput.is, CalendarInput);
+
+    </script>
+</dom-module>

@@ -1,0 +1,91 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
+
+<link rel="import" href="../calendar-behavior/calendar-behavior.html">
+<link rel="import" href="../calendar-list/calendar-list.html">
+<link rel="import" href="../calendar-input/calendar-input.html">
+
+<dom-module id="calendar-view">
+    <template>
+        <!--<style is="custom-style" include="iron-flex iron-flex-alignment"></style>-->
+        <style>
+            :host {
+                display: block;
+            }
+
+            /* Height of the scroll area */
+            .content {
+                height: 900px;
+                padding: 64px 16px 0;
+            }
+
+            calendar-list {
+                margin: 0 auto 32px;
+            }
+            calendar-list, calendar-input {
+                max-width: 1000px;
+            }
+            calendar-input {
+                margin: 0 auto;
+            }
+        </style>
+
+        <div class="content">
+            <calendar-list calendars={{calendars}}
+                           on-delete-calendar="_deleteCalendar"
+                           on-update-calendar-summary="_updateCalendarSummary"
+                           on-update-calendar-description="_updateCalendarDescription">
+
+            </calendar-list>
+
+            <calendar-input on-add-calendar="_createCalendar"></calendar-input>
+        </div>
+
+    </template>
+
+    <script>
+        class CalendarView extends CalendarBehavior(Polymer.Element) {
+
+            static get is() {
+                return 'calendar-view'
+            };
+
+            static get properties() {
+                return {
+                    calendars: Array
+                }
+            }
+
+            _createCalendar(e) {
+                var self = this;
+
+//                let calendar = Object.assign({}, e.detail.calendar, {calendarId: v4()});
+
+                let calendar = e.detail.calendar;
+
+                this.createCalendar(calendar.calendarId, calendar.summary).then(response => self.push('calendars', calendar))
+            }
+
+            _deleteCalendar(e) {
+                var self = this;
+
+                this.deleteCalendar(e.detail.calendar.calendarId);
+//                    .then(response => self.splice('calendars', this.calendars.indexOf(e.detail.calendar), 1));
+            }
+
+            _updateCalendarSummary(e) {
+                this.updateSummary(e.detail.calendar.calendarId, e.detail.calendar.summary);
+            }
+
+            _updateCalendarDescription(e) {
+                this.updateDescription(e.detail.calendar.calendarId, e.detail.calendar.description);
+            }
+
+            //TODO subscribe stream for receive add event
+
+        }
+
+        customElements.define(CalendarView.is, CalendarView);
+
+    </script>
+</dom-module>

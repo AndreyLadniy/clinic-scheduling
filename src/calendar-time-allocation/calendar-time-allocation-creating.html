@@ -1,0 +1,139 @@
+<html><head><link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/paper-input/paper-input.html">
+<link rel="import" href="../../bower_components/iron-input/iron-input.html">
+<link rel="import" href="../../bower_components/paper-input/paper-input-container.html">
+<link rel="import" href="../../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../../bower_components/paper-dialog/paper-dialog.html">
+<link rel="import" href="../../bower_components/paper-time-picker/paper-time-picker.html">
+<link rel="import" href="../../bower_components/paper-input-autocomplete-chips/paper-input-autocomplete-chips.html">
+
+<link rel="import" href="../redux-store/redux-store.html">
+
+<link rel="import" href="../event-streams/time-allocation-managers-stream.html">
+
+<!--<link rel="import" href="../../bower_components/moment/min/moment.min.js">-->
+
+</head><body><dom-module id="calendar-time-allocation-creating">
+    <template>
+        <style>
+            :host {
+                display: block;
+                /*border: 1px solid black;*/
+            }
+
+        </style>
+
+        <p>timeAllocationManagerId: [[timeAllocationManagerId]]</p>
+        <p>organizerId: [[organizerId]]</p>
+
+        <paper-input label="Start:" value="{{start}}"></paper-input>
+        <paper-input label="End:" value="{{end}}"></paper-input>
+
+    </template>
+
+    <script>
+
+        class CalendarTimeAllocationCreating extends Polymer.Element {
+            static get is() {
+                return 'calendar-time-allocation-creating';
+            }
+
+            static get properties() {
+                return {
+                    timeAllocationManagerId: {
+                        type: String,
+                        value: function () {
+                            return v4();
+                        }
+                    },
+                    organizerId: {
+                        type: String,
+                    },
+                    start: {
+                        type: String,
+                        value: function () {
+                            return moment().format();
+                        }
+                    },
+                    end: {
+                        type: String,
+                        value: function () {
+                            return moment().format();
+                        }
+                    },
+                };
+            }
+
+            constructor() {
+                super();
+            }
+
+            ready() {
+                super.ready();
+
+
+//                this.$.endTimeDialog.close();
+            }
+
+//            openChangeEndDialog() {
+//                this.$.endTimePicker.time = moment(this.end).format("HH:mm");
+//                this.$.endTimeDialog.toggle();
+//            }
+//
+//            dismissChangeEndDialog(event) {
+//                if (event.detail.confirmed) {
+////                    scope.time = scope.$.endTimePicker.time;
+//                    console.log(this.$.endTimePicker.time);
+//
+//                    this.end = moment(this.end).startOf('day')
+//                        .add(this.$.endTimePicker.hour, 'hours')
+//                        .add(this.$.endTimePicker.minute, 'minutes')
+//                        .add(this.$.endTimePicker.second, 'seconds')
+//                        .format();
+//
+//                    // reset the picker to hours
+//                    this.$.endTimePicker.view = 'hours';
+//                }
+//            }
+
+            create() {
+                let request = new Request(
+                    "http://api.rudux.ru/ecommerce/scheduling/allocation",
+                    {
+                        method: 'POST',
+                        headers: new Headers(
+                            {
+                                "Content-Type": "application/json",
+                                "Command-Type": "ecommerce.scheduling.CreateTimeAllocationManager",
+//                                "Access-Control-Allow-Origin": "*"
+                            }
+                        ),
+                        mode: 'cors',
+                        body: JSON.stringify({
+                            "timeAllocationManagerId": this.timeAllocationManagerId,
+                            "organizerId": this.organizerId,
+                            "start": this.start,
+                            "end": this.end
+                        })
+
+                    }
+                );
+
+                fetch(request)
+                    .then(request => {
+                        if (request.ok) {
+                            this.dispatchEvent(new CustomEvent('created'));
+                        } else {
+                            console.log(request.statusText);
+                        }
+                    });
+
+            }
+        }
+
+
+
+        customElements.define(CalendarTimeAllocationCreating.is, CalendarTimeAllocationCreating)
+    </script>
+</dom-module>
+</body></html>

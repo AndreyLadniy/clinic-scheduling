@@ -1,0 +1,109 @@
+<script>
+    CalendarBehavior = Parent => class extends Parent {
+        constructor() {
+            super();
+
+            this.host = 'http://api.rudux.ru';
+        }
+
+        createCalendar(calendarId, summary) {
+
+            let request = new Request(
+                this.host + '/ecommerce/calendar',
+                {
+                    method: 'POST',
+                    headers: new Headers(
+                        {
+                            "Content-Type": "application/json",
+                            "Command-Type": "ecommerce.scheduling.CreateCalendar",
+                        }
+                    ),
+                    mode: 'cors',
+                    body: JSON.stringify({
+                        "calendarId": calendarId,
+                        "summary": summary
+                    })
+
+                }
+            );
+
+            return fetch(request);
+
+        }
+
+        updateSummary(calendarId, summary) {
+
+            let request = new Request(
+                this.host + '/ecommerce/calendar',
+                {
+                    method: 'POST',
+                    headers: new Headers(
+                        {
+                            "Content-Type": "application/json",
+                            "Command-Type": "ecommerce.scheduling.UpdateSummary",
+                        }
+                    ),
+                    mode: 'cors',
+                    body: JSON.stringify({
+                        "calendarId": calendarId,
+                        "summary": summary
+                    })
+
+                }
+            );
+
+            return fetch(request);
+
+        }
+
+        updateDescription(calendarId, description) {
+
+            let request = new Request(
+                this.host + '/ecommerce/calendar',
+                {
+                    method: 'POST',
+                    headers: new Headers(
+                        {
+                            "Content-Type": "application/json",
+                            "Command-Type": "ecommerce.scheduling.UpdateDescription",
+                        }
+                    ),
+                    mode: 'cors',
+                    body: JSON.stringify({
+                        "calendarId": calendarId,
+                        "description": description
+                    })
+
+                }
+            );
+
+            return fetch(request);
+
+        }
+
+        deleteCalendar(calendarId) {
+
+            let request = new Request(
+                this.host + '/ecommerce/calendar',
+                {
+                    method: 'POST',
+                    headers: new Headers(
+                        {
+                            "Content-Type": "application/json",
+                            "Command-Type": "ecommerce.scheduling.DeleteCalendar",
+                        }
+                    ),
+                    mode: 'cors',
+                    body: JSON.stringify({
+                        "calendarId": calendarId,
+                    })
+
+                }
+            );
+
+            return fetch(request);
+
+        }
+    }
+
+</script>

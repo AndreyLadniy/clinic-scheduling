@@ -1,0 +1,6 @@
+{
+  "name": "clinic-scheduling",
+  "short_name": "clinic-scheduling",
+  "start_url": "/",
+  "display": "standalone"
+}

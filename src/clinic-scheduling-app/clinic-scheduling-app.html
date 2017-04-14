@@ -1,0 +1,313 @@
+<html><head><link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/iron-ajax/iron-ajax.html">
+<link rel="import" href="../../bower_components/iron-icon/iron-icon.html">
+<link rel="import" href="../../bower_components/paper-input/paper-input.html">
+<link rel="import" href="../../bower_components/paper-fab/paper-fab.html">
+
+
+<link rel="import" href="../calendar-time-allocation/calendar-time-allocation.html">
+
+<link rel="import" href="../event-streams/time-allocation-managers-stream.html">
+
+</head><body><dom-module id="clinic-scheduling-app">
+  <template>
+    <style>
+      :host {
+        display: block;
+      }
+
+      paper-fab {
+        position: fixed;
+        right: 25px;
+        bottom: 30px;
+      }
+
+    </style>
+    <h2>Hello [[prop1]]</h2>
+
+    <calendar-data calendars="{{calendars}}"></calendar-data>
+
+    <paper-input value="{{organizerId}}"></paper-input>
+
+    <iron-ajax id="allocations" url="http://api.rudux.ru/ecommerce/scheduling/{{organizerId}}/allocations/all" handle-as="json" on-response="allocationsLoaded">
+
+    </iron-ajax>
+
+      <iron-ajax id="attendees" url="http://api.rudux.ru/ecommerce/scheduling/{{organizerId}}/allocations/attendees" handle-as="json" on-response="attendeesLoaded">
+
+      </iron-ajax>
+
+    <template is="dom-repeat" items="{{timeAllocationManagers}}">
+      <calendar-time-allocation calendars="{{calendars}}" time-allocation-manager-id="{{item.timeAllocationManagerId}}" organizer-id="{{item.organizerId}}" start="{{item.start}}" end="{{item.end}}" prepared-for-accepting="{{item.preparedForAccepting}}" attendees="{{item.attendees}}"></calendar-time-allocation>
+
+
+    </template>
+
+    <paper-dialog id="timeAllocationCreatingDialog" modal="" on-iron-overlay-closed="dismissTimeAllocationCreatingDialog">
+      <calendar-time-allocation-creating id="timeAllocationCreating" organizer-id="[[organizerId]]" on-created="closeTimeAllocationCreatingDialog"></calendar-time-allocation-creating>
+      <div class="buttons">
+        <paper-button dialog-dismiss="">Cancel</paper-button>
+        <paper-button dialog-confirm="">OK</paper-button>
+      </div>
+    </paper-dialog>
+    <paper-fab icon="icons:add" on-tap="openTimeAllocationCreatingDialog">create</paper-fab>
+
+  </template>
+
+  <script>
+        class ClinicSchedulingApp extends TimeAllocationManagersStreamMixin(AsyncActionsBehaviorMixin(Polymer.Element)) {
+
+            static get is() {
+                return 'clinic-scheduling-app'
+            };
+
+            static get properties() {
+                return {
+                    prop1: {
+                        type: String,
+                        value: 'clinic-scheduling-app',
+                    },
+                    protocol: {
+                        type: String
+                    },
+                    url: {
+                        type: String
+                    },
+                    messages: {
+                        type: Array,
+                        value: function () {
+                            return [];
+                        }
+                    },
+                    timeAllocationManagers: {
+                        type: Array,
+                        value: function () {
+                            return [];
+                        }
+//                        computed: '_timeAllocationManagersFromState(_timeAllocationManagers)'
+                    },
+                    _timeAllocationManagers: {
+                        type: Array,
+                        statePath: 'timeAllocationManagers'
+                    },
+                    organizerId: {
+                        type: String,
+                        value: 'clinic'
+                    }
+                }
+            }
+
+          constructor() {
+                  super();
+
+              this.socket = null;
+
+          }
+
+          stringify(v) {return JSON.stringify(v)}
+
+          timeAllocationManagersFilter(el) {
+              return el.timeAllocationManagerId === '1'
+          }
+
+          ready() {
+                super.ready();
+
+              this.$.timeAllocationCreatingDialog.close();
+
+
+              //          this.$.allocations.generateRequest();
+
+//              this.dispatch('getTimeAllocationManagers', this.organizerId);
+
+        //          this.socket = new WebSocket(this.url, this.protocol);
+        //          this.socket = new WebSocket("ws://192.168.111.15:9110/channel");
+            this.socket = new WebSocket("ws://api.rudux.ru/channel");
+            this.socket.onerror = this.onError.bind(this);
+            this.socket.onopen = this.onOpen.bind(this);
+            this.socket.onmessage = this.onMessage.bind(this);
+
+              var self = this;
+
+              Streams.timeAllocationManagersStream
+//                  .filter(el => el.timeAllocationManagerId === '1')
+                  .subscribe(v => {
+
+                      if (v.event) {
+                          switch (v.event) {
+                              case 'TimeAllocationManagerCreated':
+                                  self.push('timeAllocationManagers', v.payload);
+
+                                  break;
+//                              case 'TimeAllocationManagerIntervalMoved':
+//                                  ((payload) => {
+//                                      let index = self.timeAllocationManagers.findIndex(el => el.timeAllocationManagerId === payload.timeAllocationManagerId);
+//
+//                                      self.set('timeAllocationManagers.' + index, Object.assign({}, self.timeAllocationManagers[index], {start: payload.start, end: payload.end, preparedForAccepting: false}));
+//                                  })(v.payload);
+//
+//                                  break;
+//                              case 'AttendeeTimeAllocationRequested':
+//                                  ((payload) => {
+//                                      let index = self.timeAllocationManagers.findIndex(el => el.timeAllocationManagerId === payload.timeAllocationManagerId);
+//
+//                                      self.set('timeAllocationManagers.' + index, Object.assign({}, self.timeAllocationManagers[index], {preparedForAccepting: false}));
+//                                  })(v.payload);
+//
+//                                  break;
+//                              case 'LastAttendeeTimeAllocated':
+//                                  ((payload) => {
+//                                    let index = self.timeAllocationManagers.findIndex(el => el.timeAllocationManagerId === payload.timeAllocationManagerId);
+//
+//                                    self.set('timeAllocationManagers.' + index, Object.assign({}, self.timeAllocationManagers[index], {preparedForAccepting: true}));
+//                                  })(v.payload);
+//
+//                                  console.log('[' + ClinicSchedulingApp.is + '] Event:' + v.event);
+//
+//                                  break;
+//
+                              default:
+                                  console.log('[' + ClinicSchedulingApp.is + '] Event not found:' + v.event);
+
+                          }
+                      } else {
+                          this.push('timeAllocationManagers', v);
+                      }
+
+                  });
+
+              let timeAllocationManagersRequest = new Request(
+                  "http://api.rudux.ru/ecommerce/scheduling/" + this.organizerId + "/allocations/all",
+                  {
+                      method: 'GET',
+                      mode: 'cors',
+                  }
+              );
+
+              let timeAllocationManagersAttendeesRequest = new Request(
+                  "http://api.rudux.ru/ecommerce/scheduling/" + this.organizerId + "/allocations/attendees",
+                  {
+                      method: 'GET',
+                      mode: 'cors',
+                  }
+              );
+
+//              MOCK
+              let l1 = fetch(timeAllocationManagersRequest).then(response => response.json());
+
+              let l2 = fetch(timeAllocationManagersAttendeesRequest).then(response => response.json());
+
+
+//              Promise.all([l1, l2])
+              l1.then(timeAllocationManagers =>
+                l2.then(attendees => {
+                    attendees.forEach(
+                        attendee => {
+                            let timeAllocationManager = timeAllocationManagers.find(function (el) {
+                                return el.timeAllocationManagerId === attendee.timeAllocationManagerId;
+                            });
+
+
+                            if (!timeAllocationManager.attendees) {
+                                timeAllocationManager.attendees = [attendee];
+                            } else {
+                                timeAllocationManager.attendees.push(attendee);
+                            }
+                        }
+                    );
+
+                    timeAllocationManagers.forEach(l => {
+                        Streams.timeAllocationManagersStream.next(l)
+                    });
+
+                    return timeAllocationManagers;
+
+                  })
+              );
+
+//            Streams.timeAllocationManagersStream.next({timeAllocationManagerId: "1", organizerId: "clinic", start:"", end: "", attendees: []});
+
+//              MOCK
+          }
+
+          onError(error) {
+              this.dispatchEvent(new CustomEvent('onerror'), error);
+          }
+
+          onOpen(event) {
+              this.dispatchEvent(new CustomEvent('onopen'));
+          }
+
+          onMessage(event) {
+              if (event.data !== 'Heart Beat') {
+                  let payload = JSON.parse(event.data);
+
+                  console.log(payload);
+
+                  Streams.timeAllocationManagersStream.next(payload);
+
+              }
+            }
+
+          send(message) {
+              this.socket.send(message);
+          }
+
+          close() {
+              this.socket.close();
+          }
+
+            allocationsLoaded(e) {
+
+                let arr = e.detail.response;
+
+                this.set('timeAllocationManagers', arr);
+
+                this.$.attendees.generateRequest();
+            }
+
+            attendeesLoaded(e) {
+
+              e.detail.response.forEach(
+                  (attendee) => {
+                      let timeAllocationManagersIndex = this.timeAllocationManagers.findIndex(function (el) {
+                          return el.timeAllocationManagerId === attendee.timeAllocationManagerId;
+                      });
+
+                      let allocationManager = this.timeAllocationManagers[timeAllocationManagersIndex];
+                      if (!allocationManager.attendees) {
+                          this.set('timeAllocationManagers.' + timeAllocationManagersIndex + '.attendees', [attendee]);
+                      } else {
+                          this.push('timeAllocationManagers.' + timeAllocationManagersIndex + '.attendees', attendee);
+                      }
+                  }
+              );
+
+            }
+
+            _timeAllocationManagersFromState(state) {
+              return state;
+            }
+
+            openTimeAllocationCreatingDialog() {
+                this.$.timeAllocationCreatingDialog.open();
+            }
+
+            dismissTimeAllocationCreatingDialog(e) {
+                if (e.detail.confirmed) {
+                    this.$.timeAllocationCreating.create();
+                } else {
+                    this.$.timeAllocationCreatingDialog.close();
+                }
+            }
+
+            closeTimeAllocationCreatingDialog() {
+                this.$.timeAllocationCreatingDialog.close();
+            }
+        }
+
+    customElements.define(ClinicSchedulingApp.is, ClinicSchedulingApp);
+//    Polymer(ClinicSchedulingApp_1);
+  </script>
+</dom-module>
+</body></html>
